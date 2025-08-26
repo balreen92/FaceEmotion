@@ -1,5 +1,44 @@
 python run_fer.py --onnx model.onnx --labels labels.json --video demo.mp4 --yunet face_detection_yunet_2023mar.onnx --save_vis --display
 
+
+import cv2 as cv, time
+
+def try_open(desc, cap):
+    ok = cap.isOpened()
+    print(f"[{desc}] opened:", ok)
+    if not ok: 
+        return False
+    ok2, frame = cap.read()
+    print(f"[{desc}] read frame:", ok2, ("shape="+str(frame.shape) if ok2 else ""))
+    if ok2:
+        cv.imshow(desc, frame)
+        cv.waitKey(500)  # brief preview
+        cv.destroyAllWindows()
+    cap.release()
+    return ok and ok2
+
+print("Backends: DSHOW (DirectShow), MSMF (Media Foundation). Trying indices 0..4 and Camo by name.\n")
+
+# 1) Try numeric indices with DirectShow & MSMF
+for backend, name in [(cv.CAP_DSHOW,"DSHOW"), (cv.CAP_MSMF,"MSMF")]:
+    for i in range(5):
+        cap = cv.VideoCapture(i, backend)
+        try_open(f"{name} index {i}", cap)
+
+# 2) Try opening by device name via DirectShow (works on many systems)
+# Replace the string below if your device name differs in Device Manager / Camo Studio
+for devname in ["video=Reincubate Camo", "video=Camo", "video=EpocCam Camera", "video=DroidCam Source 3"]:
+    cap = cv.VideoCapture(devname, cv.CAP_DSHOW)
+    try_open(f"DSHOW name '{devname}'", cap)
+
+print("\nDone.")
+
+
+
+
+
+
+
 import cv2 as cv
 for i in range(5):
     cap = cv.VideoCapture(i, cv.CAP_DSHOW)
