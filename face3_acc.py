@@ -250,7 +250,11 @@ def main():
     args = ap.parse_args()
 
     W, H = [int(x) for x in args.resize.lower().split("x")]
-    cap = cv.VideoCapture(args.cam_index, cv.CAP_MSMF if args.backend == "msmf" else cv.CAP_DSHOW)
+    #cap = cv.VideoCapture(args.cam_index, cv.CAP_MSMF if args.backend == "msmf" else cv.CAP_DSHOW)
+    cap = cv.VideoCapture(0, cv.CAP_MSMF)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+
     if not cap.isOpened(): raise RuntimeError("Camera open failed")
     cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*"MJPG"))
     cap.set(cv.CAP_PROP_FRAME_WIDTH, W);
