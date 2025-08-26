@@ -1,6 +1,121 @@
 python run_fer.py --onnx model.onnx --labels labels.json --video demo.mp4 --yunet face_detection_yunet_2023mar.onnx --save_vis --display
 
 
+
+# test_hse.py
+import cv2 as cv, numpy as np, json
+from hsemotion_onnx.facial_emotions import HSEmotionRecognizer
+
+# init HSEmotion (downloads model once)
+fer = HSEmotionRecognizer(model_name="enet_b2_7")  # 7-class AffectNet model
+
+# read one image (or grab from your webcam loop)
+img = cv.imread("media\\images\\test.jpg")
+face = cv.resize(img, (112,112))  # or your YuNet crop112
+emo, scores = fer.predict_emotions(face, logits=False)
+print("Pred:", emo, "probs:", scores)
+
+
+
+
+
+
+import argparse, os, glob, json, numpy as np, cv2 as cv
+from collections import Counter
+from hsemotion_onnx.facial_emotions import HSEmotionRecognizer
+
+def load_labels(path):
+    obj = json.load(open(path, "r", encoding="utf-8"))
+    if isinstance(obj, list): return obj
+    if all(k.isdigit() for k in obj): return [obj[str(i)] for i in range(len(obj))]
+    return [k for _,k in sorted(((int(v),k) for k,v in obj.items()))]
+
+def softmax(x):
+    e = np.exp(x - x.max(axis=1, keepdims=True)); return e / e.sum(axis=1, keepdims=True)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model_name", default="enet_b2_7")  # 7-class AffectNet
+    ap.add_argument("--labels", required=True)
+    ap.add_argument("--root", required=True)              # test_set/
+    ap.add_argument("--yunet", required=True)             # models/face_detection_yunet_2023mar.onnx
+    ap.add_argument("--pad", type=float, default=0.25)
+    ap.add_argument("--align", action="store_true")
+    args = ap.parse_args()
+
+    labels = load_labels(args.labels); n = len(labels); lab2idx = {l:i for i,l in enumerate(labels)}
+    # Face detector (YuNet)
+    det = cv.FaceDetectorYN_create(args.yunet, "", (320,240), 0.9, 0.3, 5000)
+
+    # HSEmotion (downloads/loads ONNX internally)
+    fer = HSEmotionRecognizer(model_name=args.model_name)
+
+    def crop112(img):
+        h,w = img.shape[:2]
+        det.setInputSize((w,h))
+        _, faces = det.detect(img)
+        if faces is None or len(faces)==0: return None
+        x,y,wf,hf = faces[0][:4].astype(int)
+        crop = img[max(0,y):y+hf, max(0,x):x+wf]
+        if crop.size==0: return None
+        return cv.resize(crop,(112,112), interpolation=cv.INTER_AREA)
+
+    exts = ("*.jpg","*.jpeg","*.png","*.bmp","*.webp")
+    def files(cls):
+        import itertools
+        base = os.path.join(args.root, cls)
+        return list(itertools.chain.from_iterable(glob.glob(os.path.join(base,e)) for e in exts))
+
+    conf = np.zeros((n,n), dtype=int)
+    totals = Counter(); correct = 0; total = 0; noface = 0
+
+    for lab in labels:
+        for path in files(lab):
+            img = cv.imread(path)
+            if img is None: continue
+            face = crop112(img)
+            if face is None:
+                noface += 1; continue
+            emo, probs = fer.predict_emotions(face, logits=False)
+            pred = lab2idx.get(emo.lower(), None)
+            if pred is None:
+                # map capitalization/variants
+                pred = lab2idx.get(emo.capitalize(), lab2idx.get(emo, None))
+            if pred is None:
+                # fallback: find argmax by our label order
+                p = np.array([probs.get(k,0.0) for k in labels])
+                pred = int(np.argmax(p))
+            gt = lab2idx[lab]
+            conf[gt, pred] += 1
+            totals[lab] += 1
+            correct += int(pred == gt); total += 1
+
+    overall = (correct / max(1,total)) * 100.0
+    per_class = {labels[i]: (conf[i,i] / max(1, conf[i].sum()) * 100.0) for i in range(n)}
+    macro = float(np.mean(list(per_class.values()))) if total>0 else 0.0
+
+    print(json.dumps({
+        "model": args.model_name,
+        "overall_accuracy_percent": round(overall,2),
+        "macro_accuracy_percent": round(macro,2),
+        "samples_used": int(total),
+        "skipped_no_face": int(noface),
+        "per_class_percent": {k: round(v,2) for k,v in per_class.items()}
+    }, indent=2))
+    print("\nConfusion matrix (rows=true, cols=pred, order):", labels)
+    print(conf)
+
+if __name__ == "__main__":
+    import numpy as np, cv2 as cv
+    main()
+
+
+
+
+
+
+
+
 import argparse, os, glob, json, numpy as np, cv2 as cv, onnxruntime as ort
 from collections import Counter
 
