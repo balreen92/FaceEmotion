@@ -7,7 +7,7 @@ import tensorflow as tf
 model = tf.keras.models.load_model("emotion_vision_model_from_dirs.h5")
 
 # 2. Emotion labels
-emotions = ["angry","disgust","fear","happy","neutral","sad","surprise"]
+emotions = ["angry","disgust","fearful","happy","neutral","sad","surprised"]
 
 # 3. Point to a test sub-folder — change “happy” to any class you want to test
 test_class = "happy"

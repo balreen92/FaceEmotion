@@ -2,6 +2,7 @@
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
+import cv2 as cv
 
 # 1. Point to your data directories
 train_dir = "data/fer-2013/train"
@@ -15,13 +16,39 @@ train_ds = tf.keras.preprocessing.image_dataset_from_directory(
     train_dir,
     labels="inferred",
     label_mode="categorical",
-    class_names=["angry","disgust","fear","happy","neutral","sad","surprise"],
+    class_names=["angry","disgust","fearful","happy","neutral","sad","surprised"],
     color_mode="grayscale",
     batch_size=BATCH_SIZE,
     image_size=IMG_SIZE,
     shuffle=True,
     seed=42,
 )
+
+
+def crop112(img, det, pad=0.35, align=False):
+    h, w = img.shape[:2]
+    det.setInputSize((w, h))
+    _, faces = det.detect(img)
+    if faces is None or len(faces) == 0:
+        # Fallback: Haar (frontal)
+        gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        haar = cv.CascadeClassifier(cv.data.haarcascades + "haarcascade_frontalface_default.xml")
+        boxes = haar.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=3, minSize=(60, 60))
+        if len(boxes) == 0:
+            return None
+        x, y, ww, hh = boxes[0]
+    else:
+        x, y, ww, hh = faces[0][:4].astype(int)
+
+    cx, cy = x + ww / 2, y + hh / 2
+    side = int(max(ww, hh) * (1 + 2 * pad))
+    nx, ny = max(0, int(cx - side / 2)), max(0, int(cy - side / 2))
+    nxe, nye = min(w, nx + side), min(h, ny + side)
+    crop = img[ny:nye, nx:nxe]
+    if crop.size == 0:
+        return None
+    return cv.resize(crop, (112, 112), interpolation=cv.INTER_AREA)
+
 
 val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     test_dir,

@@ -12,7 +12,7 @@ MODEL_PATH = "/Users/balreenkaur/Desktop/FaceEmotion/trained_models/ResMaskNet_Z
 HAAR_PATH = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 
 # FER-2013 style emotion labels commonly used with ResMaskNet
-EMO_LABELS = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
+EMO_LABELS = ["angry", "disgust", "fearful", "happy", "sad", "surprised", "neutral"]
 
 # Webcam index (0 is default). Use CAP_AVFOUNDATION for Mac stability
 CAM_INDEX = 0

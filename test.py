@@ -92,10 +92,10 @@ print(f"Test Accuracy: {accuracy:.2f}%")
 # emotion_labels = {
 #     0: 'angry',
 #     1: 'disgust',
-#     2: 'fear',
+#     2: 'fearful',
 #     3: 'happy',
 #     4: 'sad',
-#     5: 'surprise',
+#     5: 'surprised',
 #     6: 'neutral'
 # }
 #
