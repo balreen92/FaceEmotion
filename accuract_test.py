@@ -1,5 +1,14 @@
 python run_fer.py --onnx model.onnx --labels labels.json --video demo.mp4 --yunet face_detection_yunet_2023mar.onnx --save_vis --display
 
+import cv2 as cv
+for i in range(5):
+    cap = cv.VideoCapture(i, cv.CAP_DSHOW)
+    ok = cap.isOpened()
+    print(f"Index {i}: {'OPEN' if ok else 'FAIL'}")
+    if ok:
+        ret, frame = cap.read()
+        print("  Frame:", "OK" if ret else "NO")
+        cap.release()
 
 
 import argparse, time, math, json, numpy as np, cv2 as cv, onnxruntime as ort
