@@ -1,3 +1,5 @@
+python run_fer.py --onnx model.onnx --labels labels.json --video demo.mp4 --yunet face_detection_yunet_2023mar.onnx --save_vis --display
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from deepface import DeepFace
 import numpy as np
