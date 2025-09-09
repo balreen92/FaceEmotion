@@ -1,5 +1,6 @@
 python -m venv .venv
 .venv\Scripts\activate
+python evaluate_hf.py --root C:\Users\<YourName>\audb\emodb\2.0.0\d3b62a9b
 
 
 python -m pip install --upgrade pip
