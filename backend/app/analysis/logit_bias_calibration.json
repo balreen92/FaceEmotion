@@ -1,0 +1,40 @@
+# calibrate_bias.py
+import os, glob, json, numpy as np, cv2
+from face_accelerated import FaceEmotionAnalyzer
+
+VAL_DIR = r"../../my_dataset1/test"   # adjust
+an = FaceEmotionAnalyzer()
+labels = an.labels
+idx = {l:i for i,l in enumerate(labels)}
+
+cm = np.zeros((len(labels), len(labels)), dtype=int)
+tot = 0
+
+def predict_img(p):
+    img = cv2.imread(p)
+    if img is None: return None
+    out = an.classify_frames([img])
+    return out["label"]
+
+for true in labels:
+    paths = glob.glob(os.path.join(VAL_DIR, true, "*"))
+    for p in paths:
+        pred = predict_img(p)
+        if pred is None: continue
+        cm[idx[true], idx[pred]] += 1
+        tot += 1
+
+print("Confusion matrix (rows=true, cols=pred):\n", cm)
+
+# derive a small bias: if a column is over-selected → push it down a bit
+col = cm.sum(axis=0); row = cm.sum(axis=1)
+bias = {}
+for j in range(len(labels)):
+    over = int(col[j] - row[j])  # >0 means overpredicted
+    # gentle correction in logit space (cap at 0.35)
+    bias[str(j)] = float(-min(0.35, 0.02*max(0, over)))
+
+with open(r"../../models\logit_bias_calibration.json", "w") as f:
+    json.dump(bias, f, indent=2)
+
+print("Wrote models/logit_bias_calibration.json:", bias)
